@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# env & db
+.env
+data.db
+*.db
+*.db-*
+*.sqlite
+
+# misc
+.DS_Store
+.idea/
+.vscode/

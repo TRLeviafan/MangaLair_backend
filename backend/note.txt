@@ -1,0 +1,1 @@
+Server API unchanged; no polling added. GET on chapter change, POST on submit.
