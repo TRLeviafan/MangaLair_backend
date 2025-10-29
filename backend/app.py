@@ -76,7 +76,7 @@ def health():
 def api_config():
     if not settings.PUBLIC_BASE:
         raise HTTPException(500, "PUBLIC_BASE is not configured")
-    return {"PUBLIC_BASE": settings.PUBLIC_BASE}
+    return {"PUBLIC_BASE": settings.PUBLIC_BASE, "COMMENTS_API": "/api"}
 
 def _get_user_from_db(db: Session, tg_id: str) -> Optional[User]:
     return db.query(User).filter(User.tg_id == str(tg_id)).one_or_none()
@@ -228,7 +228,7 @@ def _count_likes(db: Session) -> dict[str, int]:
     return counts
 
 @app.get("/api/likes/all")
-def api_likes_all(db: Session = Depends(get_db), dep=Depends(require_user)):
+def api_likes_all(db: Session = Depends(get_db)):
     return {"ok": True, "counts": _count_likes(db)}
 
 @app.post("/api/likes/{sid}-{slug}/toggle")
