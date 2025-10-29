@@ -46,6 +46,11 @@ def legacy_comments_alias(series_key: str, chapter_id: str):
     # 307 keeps method; FastAPI will handle URL decoding of %2C → ',' before matching
     return RedirectResponse(url=f"/api/comments/{series_key}/{chapter_id}", status_code=307)
 
+@app.post("/comments,{series_key},{chapter_id},add")
+async def legacy_comments_add_alias(series_key: str, chapter_id: str):
+    # старый POST /comments,sr_xxx,ch_yyy,add -> новый POST /api/comments/sr_xxx/ch_yyy/add
+    return RedirectResponse(url=f"/api/comments/{series_key}/{chapter_id}/add", status_code=307)
+
 @app.get("/likes,all")
 def legacy_likes_all_alias():
     return RedirectResponse(url="/api/likes/all", status_code=307)
