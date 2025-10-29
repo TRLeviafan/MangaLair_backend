@@ -35,7 +35,20 @@ def _rate_limit_ok(key: str, limit=5, window=10):
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 FRONTEND_DIR = os.path.join(ROOT, "frontend")
 
+
+from fastapi.responses import RedirectResponse
+
+
 app = FastAPI(title="Mangalair MiniApp API")
+
+@app.get("/comments,{series_key},{chapter_id}")
+def legacy_comments_alias(series_key: str, chapter_id: str):
+    # 307 keeps method; FastAPI will handle URL decoding of %2C → ',' before matching
+    return RedirectResponse(url=f"/api/comments/{series_key}/{chapter_id}", status_code=307)
+
+@app.get("/likes,all")
+def legacy_likes_all_alias():
+    return RedirectResponse(url="/api/likes/all", status_code=307)
 
 app.add_middleware(
     CORSMiddleware,
@@ -184,11 +197,29 @@ def _fetch_json_no_store(url: str):
         raise HTTPException(500, f"Upstream parse error for {url}: {e}")
 
 @app.get("/api/catalog")
-def api_catalog():
+def api_catalog(db: Session = Depends(get_db)):
     if not settings.PUBLIC_BASE:
         raise HTTPException(500, "PUBLIC_BASE is not configured")
     url = f"{settings.PUBLIC_BASE}/catalog/index.json"
-    return _fetch_json_no_store(url)
+    data = _fetch_json_no_store(url)
+    # Merge likes counts
+    try:
+        counts = _count_likes_patch(db)
+        items = data if isinstance(data, list) else (data.get("items") if isinstance(data, dict) else None)
+        if isinstance(items, list):
+            for it in items:
+                key = None
+                try:
+                    sid = str(it.get("sid") or it.get("seriesId") or it.get("series_id") or it.get("id") or "")
+                    slug = str(it.get("slug") or "")
+                    key = f"{sid}-{slug}" if slug else (sid if sid and sid.startswith("sr_") else None)
+                except Exception:
+                    key = None
+                if key:
+                    it["likes"] = int(counts.get(key, 0))
+    except Exception:
+        pass
+    return data
 
 @app.get("/api/series/{sid}-{slug}/meta")
 def api_series_meta(sid: str, slug: str):
